@@ -1,11 +1,7 @@
-// home_page.dart
 import 'package:flutter/material.dart';
-import 'package:gmpl_tiffin/scan_attendance_page.dart';
+import 'package:gmpl_tiffin/sale_entry_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'sync_service.dart';
-import 'employee_db.dart';
-import 'tiffin_db.dart';
-import 'login_screen.dart'; // 👈 import your login page
+import 'login_screen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -14,18 +10,83 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage>
+    with SingleTickerProviderStateMixin {
   String userName = "";
-  bool isSyncing = false;
-  int employeeCount = 0;
-  int pendingAttendance = 0;
+  late TabController _tabController;
+
+  // 🔹 Sample Data
+  final List<Map<String, dynamic>> todaySales = [
+    {
+      "invoice": "INV-001",
+      "party": "ABC Traders",
+      "amount": 12500,
+    },
+    {
+      "invoice": "INV-002",
+      "party": "XYZ Stores",
+      "amount": 8200,
+    },
+    {
+      "invoice": "INV-003",
+      "party": "Modern Retail",
+      "amount": 15400,
+    },
+    {
+      "invoice": "INV-001",
+      "party": "ABC Traders",
+      "amount": 12500,
+    },
+    {
+      "invoice": "INV-002",
+      "party": "XYZ Stores",
+      "amount": 8200,
+    },
+    {
+      "invoice": "INV-003",
+      "party": "Modern Retail",
+      "amount": 15400,
+    },
+  ];
+
+  final List<Map<String, dynamic>> warehouseReleases = [
+    {
+      "ref": "WR-101",
+      "item": "Rice Bag",
+      "qty": 50,
+    },
+    {
+      "ref": "WR-102",
+      "item": "Wheat Flour",
+      "qty": 30,
+    },
+    {
+      "ref": "WR-103",
+      "item": "Cooking Oil",
+      "qty": 20,
+    },
+    {
+      "ref": "WR-101",
+      "item": "Rice Bag",
+      "qty": 50,
+    },
+    {
+      "ref": "WR-102",
+      "item": "Wheat Flour",
+      "qty": 30,
+    },
+    {
+      "ref": "WR-103",
+      "item": "Cooking Oil",
+      "qty": 20,
+    },
+  ];
 
   @override
   void initState() {
     super.initState();
     _loadUser();
-    _loadEmployeeCount();
-    _loadPendingAttendance();
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   Future<void> _loadUser() async {
@@ -35,27 +96,12 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  Future<void> _loadEmployeeCount() async {
-    final list = await EmployeeDb.instance.getAllEmployees();
-    setState(() {
-      employeeCount = list.length;
-    });
-  }
-
-  Future<void> _loadPendingAttendance() async {
-    final unsynced = await TiffinDb.instance.getUnsynced();
-    setState(() {
-      pendingAttendance = unsynced.length;
-    });
-  }
-
   Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear(); // clear all saved keys
+    await prefs.clear();
 
     if (!mounted) return;
 
-    // Navigate to login page and remove all previous routes
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -63,27 +109,27 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildMenuButton({
+  Widget _buildActionButton({
     required IconData icon,
     required String label,
+    required List<Color> colors,
     required VoidCallback onTap,
-    required List<Color> gradientColors,
   }) {
     return InkWell(
       onTap: onTap,
       child: Container(
-        width: double.infinity,
-        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        height: 90,
+        margin: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           gradient: LinearGradient(
-            colors: gradientColors,
+            colors: colors,
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           boxShadow: [
             BoxShadow(
-              color: gradientColors.last.withOpacity(0.4),
+              color: colors.last.withOpacity(0.4),
               blurRadius: 8,
               offset: const Offset(2, 4),
             ),
@@ -98,13 +144,13 @@ class _HomePageState extends State<HomePage> {
               child: Text(
                 label,
                 style: const TextStyle(
-                  fontSize: 20,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70),
+            const Icon(Icons.arrow_forward_ios, color: Colors.white70),
             const SizedBox(width: 20),
           ],
         ),
@@ -112,47 +158,67 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Future<void> _syncEmployees() async {
-    setState(() => isSyncing = true);
-    final result = await SyncService.syncEmployees();
-    await _loadEmployeeCount();
-    if (!mounted) return;
-    setState(() => isSyncing = false);
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Sync Complete"),
-        content: Text("$result\n\nTotal Employees: $employeeCount"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("OK"),
+  Widget _buildTodaySaleList() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(12),
+      itemCount: todaySales.length,
+      itemBuilder: (context, index) {
+        final item = todaySales[index];
+        return Card(
+          elevation: 3,
+          margin: const EdgeInsets.symmetric(vertical: 6),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
-        ],
-      ),
+          child: ListTile(
+            leading: const Icon(Icons.receipt_long, color: Colors.blue),
+            title: Text(
+              item['party'],
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: Text("Invoice: ${item['invoice']}"),
+            trailing: Text(
+              "₹${item['amount']}",
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.green,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
-  Future<void> _syncAttendance() async {
-    setState(() => isSyncing = true);
-    final result = await SyncService.syncAttendance();
-    await _loadPendingAttendance();
-    if (!mounted) return;
-    setState(() => isSyncing = false);
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Sync Attendance"),
-        content: Text(result),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("OK"),
+  Widget _buildWarehouseReleaseList() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(12),
+      itemCount: warehouseReleases.length,
+      itemBuilder: (context, index) {
+        final item = warehouseReleases[index];
+        return Card(
+          elevation: 3,
+          margin: const EdgeInsets.symmetric(vertical: 6),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
-        ],
-      ),
+          child: ListTile(
+            leading: const Icon(Icons.inventory, color: Colors.deepPurple),
+            title: Text(
+              item['item'],
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: Text("Release Ref: ${item['ref']}"),
+            trailing: Text(
+              "Qty: ${item['qty']}",
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.orange,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -172,70 +238,66 @@ class _HomePageState extends State<HomePage> {
             IconButton(
               icon: const Icon(Icons.logout, color: Colors.white),
               onPressed: _logout,
-              tooltip: "Logout",
             ),
           ],
         ),
-        body: Container(
-          width: double.infinity,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFFc5bcfb), Color(0xFFeeecfb)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-          ),
-          child: isSyncing
-              ? const Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text(
-                  "Syncing...",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+        body: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Column(
+                children: [
+                  _buildActionButton(
+                    icon: Icons.point_of_sale,
+                    label: "Sale",
+                    colors: [Colors.orange, Colors.deepOrange],
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SaleEntryPage()),
+                      );
+                    },
                   ),
-                ),
-              ],
+
+                  _buildActionButton(
+                    icon: Icons.bar_chart_rounded,
+                    label: "Sale Report",
+                    colors: [Colors.indigo, Colors.blue],
+                    onTap: () {},
+                  ),
+                  _buildActionButton(
+                    icon: Icons.inventory_2_rounded,
+                    label: "Check Stock",
+                    colors: [Colors.green, Colors.teal],
+                    onTap: () {},
+                  ),
+                ],
+              ),
             ),
-          )
-              : Column(
-            children: [
-              Expanded(
-                child: _buildMenuButton(
-                  icon: Icons.qr_code_scanner_rounded,
-                  label: "Scan Attendance",
-                  gradientColors: [Colors.blue, Colors.blueAccent],
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const ScanAttendancePage()),
-                    ).then((_) => _loadPendingAttendance());
-                  },
-                ),
+            Container(
+              color: const Color(0xFF16038b),
+              child: TabBar(
+                controller: _tabController,
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white70,
+                indicatorColor: Colors.orangeAccent,
+                indicatorWeight: 4,
+                tabs: const [
+                  Tab(icon: Icon(Icons.today), text: "Today's Sale"),
+                  Tab(icon: Icon(Icons.warehouse), text: "Warehouse Release"),
+                ],
               ),
-              Expanded(
-                child: _buildMenuButton(
-                  icon: Icons.sync_rounded,
-                  label: "Sync Attendance ($pendingAttendance)",
-                  gradientColors: [Colors.teal, Colors.green],
-                  onTap: _syncAttendance,
-                ),
+            ),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildTodaySaleList(),
+                  _buildWarehouseReleaseList(),
+                ],
               ),
-              Expanded(
-                child: _buildMenuButton(
-                  icon: Icons.people_alt_rounded,
-                  label: "Sync Employee ($employeeCount)",
-                  gradientColors: [Colors.deepPurple, Colors.purple],
-                  onTap: _syncEmployees,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

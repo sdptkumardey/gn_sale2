@@ -49,7 +49,7 @@ dependencies:
 flutter_icons:
   android: true
   ios: true
-  image_path: "images/logo-gmpl.png"
+  image_path: "images/gannayak-sales-002.jpg"
 
 dev_dependencies:
   flutter_test:
