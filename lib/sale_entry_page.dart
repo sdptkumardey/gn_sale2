@@ -28,6 +28,7 @@ class _SaleEntryPageState extends State<SaleEntryPage> {
   final TextEditingController partyNameCtrl = TextEditingController();
   final TextEditingController partyContactCtrl = TextEditingController();
   final TextEditingController partyAddressCtrl = TextEditingController();
+  final TextEditingController invCtrl = TextEditingController();
   final TextEditingController narrationCtrl = TextEditingController();
 
   final String masterApi =
@@ -46,6 +47,7 @@ class _SaleEntryPageState extends State<SaleEntryPage> {
     partyContactCtrl.dispose();
     partyAddressCtrl.dispose();
     narrationCtrl.dispose();
+    invCtrl.dispose();
 
     for (final c in qtyCtrlMap.values) {
       c.dispose();
@@ -235,6 +237,8 @@ class _SaleEntryPageState extends State<SaleEntryPage> {
         "type": "add",
         "party_name": partyNameCtrl.text.trim(),
         "party_contact": partyContactCtrl.text.trim(),
+        "party_address": partyAddressCtrl.text.trim(),
+        "inv_no": invCtrl.text.trim(),
         "narration": narrationCtrl.text.trim(),
         "arr": addedProducts,
       };
@@ -523,6 +527,14 @@ class _SaleEntryPageState extends State<SaleEntryPage> {
                             controller: partyAddressCtrl,
                             decoration: _inputDecoration(
                                 "Party Address", Icons.location_on),
+                          ),
+                          const SizedBox(height: 12),
+
+
+                          TextField(
+                            controller: invCtrl,
+                            decoration: _inputDecoration(
+                                "Ref. Inv. / Challan No.", Icons.sd_card_alert),
                           ),
                           const SizedBox(height: 12),
 

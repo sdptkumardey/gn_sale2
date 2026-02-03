@@ -111,6 +111,19 @@ class _SalePageState extends State<SalePage> {
     });
 
     try {
+      // ───────────── REQUEST LOG ─────────────
+      debugPrint("\n════════════════ STOCK SEARCH REQUEST ════════════════");
+      debugPrint("URL : $searchApi");
+      debugPrint("PAYLOAD :");
+      debugPrint(
+        const JsonEncoder.withIndent('  ').convert({
+          'make': selectedMakeId ?? '',
+          'size': selectedSizeId ?? '',
+          'item': selectedItemId ?? '',
+        }),
+      );
+      debugPrint("═══════════════════════════════════════════════════════\n");
+
       final res = await http.post(
         Uri.parse(searchApi),
         body: {
@@ -120,7 +133,19 @@ class _SalePageState extends State<SalePage> {
         },
       );
 
+      // ───────────── RAW RESPONSE LOG ─────────────
+      debugPrint("\n════════════════ STOCK SEARCH RAW RESPONSE ════════════════");
+      debugPrint("STATUS CODE : ${res.statusCode}");
+      debugPrint("RAW BODY :");
+      debugPrint(res.body);
+      debugPrint("══════════════════════════════════════════════════════════\n");
+
       final data = jsonDecode(res.body);
+
+      // ───────────── PARSED RESPONSE LOG ─────────────
+      debugPrint("\n════════════════ STOCK SEARCH PARSED RESPONSE ════════════════");
+      debugPrint(const JsonEncoder.withIndent('  ').convert(data));
+      debugPrint("════════════════════════════════════════════════════════════\n");
 
       if (data['status'] == true) {
         setState(() {
@@ -128,10 +153,17 @@ class _SalePageState extends State<SalePage> {
           List<Map<String, dynamic>>.from(data['data'] ?? []);
         });
       }
+    } catch (e, stack) {
+      debugPrint("\n════════════════ STOCK SEARCH ERROR ════════════════");
+      debugPrint("ERROR : $e");
+      debugPrint("STACK TRACE :");
+      debugPrint(stack.toString());
+      debugPrint("═══════════════════════════════════════════════════════\n");
     } finally {
       setState(() => isSearching = false);
     }
   }
+
 
   /// 🔹 Result Card
   Widget _buildResultCard(Map<String, dynamic> row, int index) {
@@ -168,6 +200,18 @@ class _SalePageState extends State<SalePage> {
             Text("Warehouse : ${row['warehouse_name']}"),
 
             const SizedBox(height: 6),
+
+
+            if ((row['transit'] ?? 0) > 0)
+              Text(
+                "On Transit : ${row['transit']} ${row['uom_name']}",
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
+              ),
+
+
 
             /// ✅ AVAILABLE STOCK
             Text(
